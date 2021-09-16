@@ -119,6 +119,7 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
   config :endpoint, :validate => :string, :required => true
   config :username, :validate => :string, :default => nil
   config :password, :validate => :string, :default => nil
+  config :flavour, :validate => :string, :default => "confluent"
 
   config :schema_id, :validate => :number, :default => nil
   config :subject_name, :validate => :string, :default => nil
@@ -141,23 +142,28 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
   public
   def register
     @client = if client_certificate != nil
-      SchemaRegistry::Client.new(endpoint, username, password, SchemaRegistry::Client.connection_options(
+      SchemaRegistry::Client.new(endpoint, username, password, flavour, SchemaRegistry::Client.connection_options(
         client_certificate: client_certificate,
         client_key: client_key,
         ca_certificate: ca_certificate,
         verify_mode: verify_mode
       ))
     else
-      SchemaRegistry::Client.new(endpoint, username, password)
+      SchemaRegistry::Client.new(endpoint, username, password, flavour)
     end
 
     @schemas = Hash.new
     @write_schema_id = nil
+    if !["confluent", "apicurio"].include? flavour
+      raise ArgumentError, "flavour must be one of 'confluent' or 'apicurio'"
+    end
+    @flavour = flavour
   end
 
   def get_schema(schema_id)
     unless @schemas.has_key?(schema_id)
-      @schemas[schema_id] = Avro::Schema.parse(@client.schema(schema_id))
+      schema_hash = @client.schema(schema_id)
+      @schemas[schema_id] = Avro::Schema.real_parse(schema_hash)
     end
     @schemas[schema_id]
   end
@@ -249,7 +255,13 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
     dw = Avro::IO::DatumWriter.new(schema)
     buffer = StringIO.new
     buffer.write(MAGIC_BYTE.chr)
-    buffer.write([@write_schema_id].pack("I>"))
+    if @flavour == "apicurio"
+      #Apicurio uses 8 bytes (by default but could be 4 still so TODO)
+      buffer.write([@write_schema_id].pack("Q>"))
+    else
+      #Confluent uses 4 bytes
+      buffer.write([@write_schema_id].pack("I>"))
+    end
     encoder = Avro::IO::BinaryEncoder.new(buffer)
     dw.write(clean_event(event), encoder)
     if @binary_encoded

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name          = 'logstash-codec-avro_schema_registry'
-  s.version       = '1.2.0'
+  s.version       = '1.2.1'
   s.licenses      = ['Apache License (2.0)']
   s.summary         = "Encode and decode avro formatted data from a Confluent schema registry"
   s.description     = "Encode and decode avro formatted data from a Confluent schema registry"
@@ -21,6 +21,6 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency "logstash-core-plugin-api", ">= 1.60", "<= 2.99"
   s.add_runtime_dependency "logstash-codec-line"
   s.add_runtime_dependency "avro"  #(Apache 2.0 license)
-  s.add_runtime_dependency "schema_registry", ">= 0.1.0" #(MIT license)
+  s.add_runtime_dependency "schema_registry", ">= 0.1.2" #(MIT license)
   s.add_development_dependency "logstash-devutils"
 end
