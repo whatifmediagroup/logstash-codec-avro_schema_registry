@@ -140,7 +140,7 @@ class LogStash::Codecs::AvroSchemaRegistry < LogStash::Codecs::Base
   
   public
   def register
-    @client = SchemaRegistry::Client.new(endpoint, username, password, SchemaRegistry::Client.connection_options(
+    @client = SchemaRegistry::Client.new(endpoint, username, password, **SchemaRegistry::Client.connection_options(
       client_certificate: client_certificate,
       client_key: client_key,
       ca_certificate: ca_certificate,
